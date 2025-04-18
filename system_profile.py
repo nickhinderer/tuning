@@ -75,7 +75,7 @@ def print_gcc_info(save=False):
     gcc_version = gcc.stdout.decode("utf-8").splitlines()[0]
     print(gcc_version)
     if save:
-        with open("aux/system_profile.txt", "a") as f:
+        with open("data/system_profile.txt", "a") as f:
             f.write("\n" + gcc_version)
             f.close()
     return
