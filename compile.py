@@ -7,25 +7,31 @@ import secrets
 import string
 import argparse
 import re
-from pathlib import Path 
-print('hello')
+from pathlib import Path
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 
 # === Global Configuration === #
 
-# to try without, use '' as a member of a group
+COMPILER = "gcc"
+PRELUDE = "-fopt-info-vec-missed -DNI=N -DNJ=N -DNK=N -I ../polybench-c-4.2.1-beta/utilities -I ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm ../polybench-c-4.2.1-beta/utilities/polybench.c ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.openmp.c -DPOLYBENCH_TIME -D"
+VARIABLE_FLAGS = {"DN": [16, 256, 512, 1024]}
 FLAG_GROUPS = [
+    # to try without, use '' as a member of a group
     [
         "O3",
     ],
-    ['fopenmp']
+    ["fopenmp"],
 ]
 
-VARIABLE_FLAGS = {"DN": [16, 256, 512, 1024]}
+SOURCE_FILE = os.getenv("SOURCE_FILE")
+BIN_PATH = os.getenv("BIN_PATH")
+BUILD_PATH = os.getenv("BUILD_PATH")
+DATA_PATH = os.getenv("DATA_PATH")
 
-SOURCE_FILE = "gemm.openmp"
-COMPILER = "gcc"
-PRELUDE = "-fopt-info-vec-missed -DNI=N -DNJ=N -DNK=N -I polybench-c-4.2.1-beta/utilities -I polybench-c-4.2.1-beta/linear-algebra/blas/gemm polybench-c-4.2.1-beta/utilities/polybench.c polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.openmp.c -DPOLYBENCH_TIME"
 
 PRINT_IN_COLOR = False
 COLOR = (
@@ -130,7 +136,7 @@ def yield_flag_csv_entries():
 
             # Compiler flags including output redirection
             compiler_cmd = " ".join((COMPILER, PRELUDE))
-            compiler_cmd += f" -o bin/{temp_filename} "
+            compiler_cmd += f" -o {BIN_PATH}/{temp_filename} "
             compiler_cmd += build_compiler_flag_string(flag_combo, variables)
 
             # Row to write to CSV
@@ -150,14 +156,14 @@ def run_compile_and_report(cmd, report=False, verbose=False):
         return
 
     try:
-        # print(cmd)
+        print(cmd)
         result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
         output = result.stdout + result.stderr
 
         if report:
-            with open(f"aux/compiler_report_{SOURCE_FILE}.txt", "a") as wf:
+            with open(f"${DATA_PATH}/compiler_report_{SOURCE_FILE}.txt", "a") as wf:
                 # Match lines like: path/file.c:123:3: ...
-                pattern = re.compile(r'([^\s:]+\.c):(\d+):\d?')
+                pattern = re.compile(r"([^\s:]+\.c):(\d+):\d?")
                 # pattern = re.compile(r'([^\s:]+\.c):(\d+)(?::\d+)?')
                 # pattern = re.compile(r"\b([^\s:]+\.c):(\d+)(?::\d+)?")
                 # matches = pattern.findall(output)
@@ -212,16 +218,16 @@ def run_compile_and_report(cmd, report=False, verbose=False):
 
 def init():
     """Create required directories and parse arguments."""
-    os.makedirs("bin", exist_ok=True)
-    os.makedirs("aux", exist_ok=True)
+    # os.makedirs("bin", exist_ok=True)
+    # os.makedirs("aux", exist_ok=True)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--env-file", type=str, help="Path to environment variable file"
-    )
-    parser.add_argument("--report", action="store_true", help="")
-    args = parser.parse_args()
-
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument(
+    #     "--env-file", type=str, help="Path to environment variable file"
+    # )
+    # parser.add_argument("--report", action="store_true", help="")
+    # args = parser.parse_args()
+    return None
     return args
 
 
@@ -231,14 +237,15 @@ if __name__ == "__main__":
 
     args = init()
 
-    env_vars = {}
-    if args.env_file:
-        env_vars = update_environment_from_file(args.env_file)
+    # env_vars = {}
+    # if args.env_file:
+    #     env_vars = update_environment_from_file(args.env_file)
 
-    with open(f"aux/compile_data_{SOURCE_FILE}.csv", "w") as f:
+    with open(f"{BUILD_PATH}/compile_{SOURCE_FILE}.csv", "w") as f:
         for csv_row, compiler_cmd in yield_flag_csv_entries():
             f.write(csv_row + "\n")
             if (
                 compiler_cmd
             ):  # to avoid the first iteration which yeilds header and no command
+                # print(compiler_cmd)
                 run_compile_and_report(compiler_cmd, report=False, verbose=True)

@@ -1,0 +1,5 @@
+id,source,O3,fopenmp,DN
+gemm5hcucw5iwv0macsf,gemm,1,1,16
+gemmqivfpyyj0o591kr2,gemm,1,1,256
+gemmjdqr81efu2wg1s2f,gemm,1,1,512
+gemm144f81j2luingu1j,gemm,1,1,1024

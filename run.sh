@@ -4,8 +4,8 @@ set -e
 
 set -a
 source .env
-set +a
-
+# set +a
+# env
 # -------------------------
 # Helper function: join with delimiter
 join_by() {
@@ -16,9 +16,9 @@ join_by() {
 
 # -------------------------
 # Initialization
-exec_dir=""
+# exec_dir=""
 output_vars=()
-csv_file="build/run.csv"
+csv_file="${BUILD_PATH}/run.csv"
 runs=1
 declare -A arg_sets
 declare -A env_sets
@@ -33,7 +33,7 @@ print_env_before_run=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --csv)
-            csv_file="$2"
+            csv_file="${BUILD_PATH}/$2"
             shift 2
             ;;
         --out-vars)
@@ -93,10 +93,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            if [[ -z "$exec_dir" ]]; then
-                exec_dir="$1"
-                shift
-            elif [[ ${#output_vars[@]} -eq 0 ]]; then
+            # if [[ -z "$exec_dir" ]]; then
+            #     exec_dir="$1"
+            #     shift
+            if [[ ${#output_vars[@]} -eq 0 ]]; then
                 IFS=',' read -r -a output_vars <<< "$1"
                 shift
             else
@@ -109,8 +109,8 @@ done
 
 # -------------------------
 # Validate required fields
-if [[ -z "$exec_dir" || ${#output_vars[@]} -eq 0 ]]; then
-    echo "Usage: $0 <exec_dir> <output_vars> [options]"
+if [[ ${#output_vars[@]} -eq 0 ]]; then
+    echo "Usage: $0 <output_vars> [options]"
     exit 1
 fi
 
@@ -152,7 +152,7 @@ done
 
 # -------------------------
 # Write CSV header
-header="binary"
+header="id"
 for k in "${arg_keys[@]}"; do header+=",$k"; done
 for k in "${env_keys[@]}"; do header+=",$k"; done
 for o in "${output_vars[@]}"; do header+=",$o"; done
@@ -160,7 +160,7 @@ echo "$header" > "$csv_file"
 
 # -------------------------
 # Run each combination
-for bin in "$exec_dir"/*; do
+for bin in "$BIN_PATH"/*; do
     [[ -x "$bin" && -f "$bin" ]] || continue
     bin_name=$(basename "$bin")
 

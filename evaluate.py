@@ -1,16 +1,16 @@
 import pandas as pd
 from tabulate import tabulate
 import argparse
-from modules.files import create_file_with_timestamp
+# from modules.files import create_file_with_timestamp
 import matplotlib
 
 # === Global Configuration === #
 
-combine_compiler_generated_tables = False
+combine_compiler_generated_tables = True
 # compiler_file = "aux/compile_data_gemm.csv"
-compiler_file = "aux/compile_data_gemm.csv"
-compiler_file2 = "aux/compile_data_gemm.openmp.csv"
-run_file = "aux/run_data.csv"
+compiler_file = "build/compile_gemm.csv"
+compiler_file2 = "build/compile_gemm.openmp.csv"
+run_file = "build/run.csv"
 
 
 COLUMN_RENAME = {
@@ -18,7 +18,7 @@ COLUMN_RENAME = {
     "DN": "n",
     "OMP_NUM_THREADS": "threads",
     "fopenmp": "OpenMP",
-    "exec_time": "time",
+    "time": "time",
 }
 
 # === ANSI Colors ===
@@ -276,10 +276,10 @@ if __name__ == "__main__":
                     "\n",
                 )
 
-    if args.save:
-        filename = create_file_with_timestamp("data", "csv", "scratchpad")
-        with open(filename, "w") as f:
-            f.write(df["time"].agg(["min", "max", "mean"]).to_string())
+    # if args.save:
+    #     filename = create_file_with_timestamp("data", "csv", "scratchpad")
+    #     with open(filename, "w") as f:
+    #         f.write(df["time"].agg(["min", "max", "mean"]).to_string())
 
     # result = []
     # print(f"{'without' if v1 else 'using'} OpenMP")
