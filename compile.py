@@ -7,18 +7,22 @@ import secrets
 import string
 import argparse
 import re
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 
 
-load_dotenv()
-
-
 # === Global Configuration === #
 
+load_dotenv()
+BIN_PATH = os.getenv("BIN_PATH")
+BUILD_PATH = os.getenv("BUILD_PATH")
+DATA_PATH = os.getenv("DATA_PATH")
+ENV_PATH = os.getenv("ENV_PATH")
+
 COMPILER = "gcc"
-PRELUDE = "-fopt-info-vec-missed -DNI=N -DNJ=N -DNK=N -I ../polybench-c-4.2.1-beta/utilities -I ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm ../polybench-c-4.2.1-beta/utilities/polybench.c ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.openmp.c -DPOLYBENCH_TIME -D"
-VARIABLE_FLAGS = {"DN": [16, 256, 512, 1024]}
+PRELUDE = "-fopt-info-vec-missed -DNI=N -DNJ=N -DNK=N -I ../polybench-c-4.2.1-beta/utilities -I ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm ../polybench-c-4.2.1-beta/utilities/polybench.c ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.c -DPOLYBENCH_TIME "
+VARIABLE_FLAGS = {"DN=": [16, 256, 512, 1024]}
 FLAG_GROUPS = [
     # to try without, use '' as a member of a group
     [
@@ -26,12 +30,7 @@ FLAG_GROUPS = [
     ],
     ["fopenmp"],
 ]
-
-SOURCE_FILE = os.getenv("SOURCE_FILE")
-BIN_PATH = os.getenv("BIN_PATH")
-BUILD_PATH = os.getenv("BUILD_PATH")
-DATA_PATH = os.getenv("DATA_PATH")
-
+ID = "gemm"
 
 PRINT_IN_COLOR = False
 COLOR = (
@@ -47,14 +46,49 @@ COLOR = (
     else {"red": "", "gre": "", "ylo": "", "blu": "", "pur": "", "clr": ""}
 )
 
+def init():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--import-json",
+        nargs="?",
+        const="compile_config.json",  # used if --import-json is given without value
+        default=None,  # None means not used at all
+    )
+    args = parser.parse_args()
 
-# === Global Variables === #
+    if args.import_json:
+        with open(f"{ENV_PATH}/{args.import_json}", "r") as f:
+            config = json.load(f)
+            ID, data = next(iter(config.items()))
+            COMPILER = data.get("compiler")
+            PRELUDE = data.get("prelude")
+            flags = data.get("flags")
+            if flags:
+                VARIABLE_FLAGS = flags.get("variable")
+                FLAG_GROUPS = flags.get("group")
+            else:
+                VARIABLE_FLAGS = dict()
+                FLAG_GROUPS = list()
 
+    # os.makedirs("bin", exist_ok=True)
+    # os.makedirs("aux", exist_ok=True)
+
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument(
+    #     "--env-file", type=str, help="Path to environment variable file"
+    # )
+    # parser.add_argument("--report", action="store_true", help="")
+    # args = parser.parse_args()
+    # env_vars = {}
+    # if args.env_file:
+    #     env_vars = update_environment_from_file(args.env_file)
+    report, verbose = False, False
+    return report, verbose
 
 # === Helper Functions === #
 
 
-def generate_filename(prefix=SOURCE_FILE, length=16):
+def generate_filename(prefix=ID, length=16):
     """Generate a random temporary filename."""
     chars = string.ascii_lowercase + string.digits
     suffix = "".join(secrets.choice(chars) for _ in range(length))
@@ -71,10 +105,7 @@ def update_environment_from_file(filename):
                 val = val.strip('"')  # Remove quotes if present
                 env_vars[key] = val
                 os.environ[key] = val  # Update the actual environment
-    # because of formatting complications that arise when trying to put some of these variables in a csv
-    # instead this information will be written once to a file since these will remain the same for one
-    # the duration of this program
-    with open(f"aux/compile_env_{SOURCE_FILE}.txt", "w") as f:
+    with open(f"aux/compile_env_{ID}.txt", "w") as f:
         for variable, value in os.environ.items():
             f.write(f"{variable}={value}\n")
             print(f"{variable}={value}")
@@ -104,14 +135,14 @@ def collect_unique_flags(flag_groups):
 def build_compiler_flag_string(flags, variables):
     """Create a valid compiler flag string with dashes and variable assignments."""
     flag_parts = [f"-{flag}" for flag in flags if flag]
-    var_parts = [f"-{k}={v}" for k, v in variables.items()]
+    var_parts = [f"-{k}{v}" for k, v in variables.items()]
     return " ".join(flag_parts + var_parts)
 
 
 def build_csv_row(active_flags, all_flags, variable_values, temp_filename):
     """Convert flag presence and variable values into a CSV row with temp filename."""
     flag_bits = [1 if flag in active_flags else 0 for flag in all_flags]
-    return [temp_filename, SOURCE_FILE] + flag_bits + list(variable_values)
+    return [temp_filename, ID] + flag_bits + list(variable_values)
 
 
 def yield_flag_csv_entries():
@@ -161,7 +192,7 @@ def run_compile_and_report(cmd, report=False, verbose=False):
         output = result.stdout + result.stderr
 
         if report:
-            with open(f"${DATA_PATH}/compiler_report_{SOURCE_FILE}.txt", "a") as wf:
+            with open(f"${DATA_PATH}/compiler_report_{ID}.txt", "a") as wf:
                 # Match lines like: path/file.c:123:3: ...
                 pattern = re.compile(r"([^\s:]+\.c):(\d+):\d?")
                 # pattern = re.compile(r'([^\s:]+\.c):(\d+)(?::\d+)?')
@@ -216,36 +247,17 @@ def run_compile_and_report(cmd, report=False, verbose=False):
         return False
 
 
-def init():
-    """Create required directories and parse arguments."""
-    # os.makedirs("bin", exist_ok=True)
-    # os.makedirs("aux", exist_ok=True)
-
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument(
-    #     "--env-file", type=str, help="Path to environment variable file"
-    # )
-    # parser.add_argument("--report", action="store_true", help="")
-    # args = parser.parse_args()
-    return None
-    return args
-
-
 # === Entry Point === #
 
 if __name__ == "__main__":
 
-    args = init()
+    report, verbose = init()
 
-    # env_vars = {}
-    # if args.env_file:
-    #     env_vars = update_environment_from_file(args.env_file)
-
-    with open(f"{BUILD_PATH}/compile_{SOURCE_FILE}.csv", "w") as f:
+    with open(f"{BUILD_PATH}/compile_{ID}.csv", "w") as f:
         for csv_row, compiler_cmd in yield_flag_csv_entries():
             f.write(csv_row + "\n")
             if (
                 compiler_cmd
             ):  # to avoid the first iteration which yeilds header and no command
                 # print(compiler_cmd)
-                run_compile_and_report(compiler_cmd, report=False, verbose=True)
+                run_compile_and_report(compiler_cmd, report, verbose)

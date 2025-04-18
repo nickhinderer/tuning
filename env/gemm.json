@@ -1,0 +1,12 @@
+{
+    "gemm": {
+        "compiler" : "gcc",
+        "prelude" : "-fopt-info-vec-missed -DNI=N -DNJ=N -DNK=N -I ../polybench-c-4.2.1-beta/utilities -I ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm ../polybench-c-4.2.1-beta/utilities/polybench.c ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.c -DPOLYBENCH_TIME",
+        "flags" : {
+            "variable" : {
+                "DN=" : [16, 64, 512, 1024, 4000]
+            },
+            "group" : [["O3"]]
+        }
+    }
+}

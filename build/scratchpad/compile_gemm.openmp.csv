@@ -1,0 +1,6 @@
+id,source,O3,fopenmp,DN=
+gemm.openmpidkp3blfrkvh8zmf,gemm.openmp,1,1,16
+gemm.openmp7xnw23e2xwy5hezt,gemm.openmp,1,1,64
+gemm.openmp3c76n1g3gdd5yhp8,gemm.openmp,1,1,512
+gemm.openmpsv2y3uncoiv0uut3,gemm.openmp,1,1,1024
+gemm.openmpp5bej6xyy50560m7,gemm.openmp,1,1,4000

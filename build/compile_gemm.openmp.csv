@@ -1,5 +1,0 @@
-id,source,O3,fopenmp,DN
-gemm.openmpszp9my073lx6mqzl,gemm.openmp,1,1,16
-gemm.openmpl1n38oc5w66w03cj,gemm.openmp,1,1,256
-gemm.openmpr11dxnh7javyu51c,gemm.openmp,1,1,512
-gemm.openmpibh6xsh01sct8kem,gemm.openmp,1,1,1024

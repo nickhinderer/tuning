@@ -1,25 +1,15 @@
 import pandas as pd
 from tabulate import tabulate
-import argparse
-# from modules.files import create_file_with_timestamp
 import matplotlib
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # === Global Configuration === #
 
-combine_compiler_generated_tables = True
-# compiler_file = "aux/compile_data_gemm.csv"
-compiler_file = "build/compile_gemm.csv"
-compiler_file2 = "build/compile_gemm.openmp.csv"
-run_file = "build/run.csv"
-
-
-COLUMN_RENAME = {
-    "id": "id",
-    "DN": "n",
-    "OMP_NUM_THREADS": "threads",
-    "fopenmp": "OpenMP",
-    "time": "time",
-}
+FILE = os.path.join(os.getenv("DATA_PATH"), os.getenv("DATA_FILE"))
 
 # === ANSI Colors ===
 RED = "\033[91m"
@@ -79,34 +69,6 @@ def find_best_combination(df, metric, preferred):
 def remove_outliers(threshold=None, number=0):
     """Either remove by a given acceptable deviation or the top and bottom number specified"""
     return
-
-
-def merge_csv_inner_join(compiler_data, run_data):
-    """Intended to be used to link the compiler variables with runtime variables based on executable name"""
-    # df1 = pd.read_csv(compiler_data)  # has unique ids
-    # df2 = pd.read_csv(run_data)  # has duplicates
-
-    # Merge on 'id', duplicating df1 rows as needed
-    return pd.merge(
-        run_data, compiler_data, on="id", how="inner"
-    )  # or 'inner' if you only want matching ids
-
-
-def concatenate_csv_fill_mutex_zeros(compiler_data1, compiler_data2):
-    """Intended to be used to concatenate two csv files generated from compilation"""
-    df1 = pd.read_csv(compiler_data1)  # has unique ids
-    df2 = pd.read_csv(compiler_data2)
-    fill_value = 0
-
-    # Get union of all column names
-    all_columns = df1.columns.union(df2.columns)
-
-    # Reindex each DataFrame to have all columns, fill missing with fill_value
-    df1_filled = df1.reindex(columns=all_columns, fill_value=fill_value)
-    df2_filled = df2.reindex(columns=all_columns, fill_value=fill_value)
-
-    # Concatenate the two vertically
-    return pd.concat([df1_filled, df2_filled], ignore_index=True)
 
 
 def sort_table_by_order(df, order):
@@ -220,23 +182,8 @@ def color_dataframe_by_index(df, float_precision=6):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("-s", "--save", action="store_true")
-    args = parser.parse_args()
-
-    run_df = pd.read_csv(run_file)
-    compile_df = (
-        concatenate_csv_fill_mutex_zeros(compiler_file, compiler_file2)
-        if combine_compiler_generated_tables
-        else pd.read_csv(compiler_file)
-    )
-    df = merge_csv_inner_join(compile_df, run_df)
-    df = df.rename(columns=COLUMN_RENAME)
-    # df.to_csv('new_csv.csv', index=False)
-    # df = pd.read_csv('new_csv.csv')
-    # PROBLEM 1
-    # df = df.sort_values(by=["threads", "id"])
+   
+    df = pd.read_csv(FILE)
     df = df.sort_values(by=["n", "threads", "id"])
     result = None
     for val, table in split_table_by_column(df, "threads").items():
@@ -251,8 +198,8 @@ if __name__ == "__main__":
             print(f"{'using' if omp else 'without'} OpenMP")
             print(agg.to_string(header=False))
             print()
-            print(type(agg.values))
-            print(omp)
+            # print(type(agg.values))
+            # print(omp)
             if omp:
                 result = []
                 for thread, thread_table in split_table_by_column(
