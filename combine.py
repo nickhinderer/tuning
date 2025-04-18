@@ -8,17 +8,13 @@ from pathlib import Path
 
 
 load_dotenv()
+FILE = os.path.join(os.getenv("DATA_PATH"), os.getenv("DATA_FILE"))
+parser = argparse.ArgumentParser()
+parser.add_argument("--compile-info", nargs="+")
+parser.add_argument("--run-info", nargs="+")
+args = parser.parse_args()
+
 # === Global Configuration === #
-
-combine_compiler_generated_tables = True
-# compiler_file = "aux/compile_data_gemm.csv"
-compiler_file = "build/compile_gemm.csv"
-compiler_file2 = "build/compile_gemm.openmp.csv"
-run_file = "build/run.csv"
-
-DATA_PATH = os.getenv("DATA_PATH")
-DATA_FILE = os.getenv("DATA_FILE")
-FILE = os.path.join(DATA_PATH, DATA_FILE)
 
 COLUMN_RENAME = {
     "id": "id",
@@ -74,13 +70,13 @@ def merge_csv_inner_join(compiler_data, run_data):
 
 def concatenate_csv_fill_mutex_zeros(compiler_data1, compiler_data2):
     """Intended to be used to concatenate two csv files generated from compilation"""
-    df1 = pd.read_csv(compiler_data1)  # has unique ids
+    df1 = compiler_data1  # has unique ids
     df2 = pd.read_csv(compiler_data2)
     fill_value = 0
 
     # Get union of all column names
     all_columns = df1.columns.union(df2.columns)
-
+    print(all_columns)
     # Reindex each DataFrame to have all columns, fill missing with fill_value
     df1_filled = df1.reindex(columns=all_columns, fill_value=fill_value)
     df2_filled = df2.reindex(columns=all_columns, fill_value=fill_value)
@@ -90,16 +86,28 @@ def concatenate_csv_fill_mutex_zeros(compiler_data1, compiler_data2):
 
 
 if __name__ == "__main__":
+    
+    compile_df = None
+    if type(args.compile_info) == list:
+        compile_df = pd.read_csv(args.compile_info[0])
+        for csv in args.compile_info[1:]:
+            compile_df = concatenate_csv_fill_mutex_zeros(compile_df, csv)
+    else:
+        compile_df = pd.read_csv(args.compile_info)
+        
+    run_df = None
+    if type(args.run_info) == list:
+        run_df = pd.read_csv(args.run_info[0])
+        for csv in args.run_info[1:]:
+            
+            run_df = concatenate_csv_fill_mutex_zeros(run_df, csv)
+    else:
+        run_df = pd.read_csv(args.run_info)
+    # print(tabulate(compile_df))
+    # print(tabulate(run_df))
+    
 
-
-    run_df = pd.read_csv(run_file)
-    compile_df = (
-        concatenate_csv_fill_mutex_zeros(compiler_file, compiler_file2)
-        if combine_compiler_generated_tables
-        else pd.read_csv(compiler_file)
-    )
     df = merge_csv_inner_join(compile_df, run_df)
     df = df.rename(columns=COLUMN_RENAME)
-    
+
     df.to_csv(FILE, index=False)
-    

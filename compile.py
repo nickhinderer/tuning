@@ -46,44 +46,43 @@ COLOR = (
     else {"red": "", "gre": "", "ylo": "", "blu": "", "pur": "", "clr": ""}
 )
 
-def init():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--import-json",
-        nargs="?",
-        const="compile_config.json",  # used if --import-json is given without value
-        default=None,  # None means not used at all
-    )
-    args = parser.parse_args()
 
-    if args.import_json:
-        with open(f"{ENV_PATH}/{args.import_json}", "r") as f:
-            config = json.load(f)
-            ID, data = next(iter(config.items()))
-            COMPILER = data.get("compiler")
-            PRELUDE = data.get("prelude")
-            flags = data.get("flags")
-            if flags:
-                VARIABLE_FLAGS = flags.get("variable")
-                FLAG_GROUPS = flags.get("group")
-            else:
-                VARIABLE_FLAGS = dict()
-                FLAG_GROUPS = list()
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--import-json",
+    nargs="?",
+    const="env/compile_config.json",  # used if --import-json is given without value
+    default=None,  # None means not used at all
+)
+args = parser.parse_args()
 
-    # os.makedirs("bin", exist_ok=True)
-    # os.makedirs("aux", exist_ok=True)
+if args.import_json:
+    with open(f"{args.import_json}", "r") as f:
+        config = json.load(f)
+        ID, data = next(iter(config.items()))
+        COMPILER = data.get("compiler")
+        PRELUDE = data.get("prelude")
+        flags = data.get("flags")
+        if flags:
+            VARIABLE_FLAGS = flags.get("variable")
+            FLAG_GROUPS = flags.get("group")
+        else:
+            VARIABLE_FLAGS = dict()
+            FLAG_GROUPS = list()
 
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument(
-    #     "--env-file", type=str, help="Path to environment variable file"
-    # )
-    # parser.add_argument("--report", action="store_true", help="")
-    # args = parser.parse_args()
-    # env_vars = {}
-    # if args.env_file:
-    #     env_vars = update_environment_from_file(args.env_file)
-    report, verbose = False, False
-    return report, verbose
+# os.makedirs("bin", exist_ok=True)
+# os.makedirs("aux", exist_ok=True)
+
+# parser = argparse.ArgumentParser()
+# parser.add_argument(
+#     "--env-file", type=str, help="Path to environment variable file"
+# )
+# parser.add_argument("--report", action="store_true", help="")
+# args = parser.parse_args()
+# env_vars = {}
+# if args.env_file:
+#     env_vars = update_environment_from_file(args.env_file)
+REPORT, VERBOSE = False, False
 
 # === Helper Functions === #
 
@@ -177,21 +176,21 @@ def yield_flag_csv_entries():
             yield csv_row_string, compiler_cmd
 
 
-def run_compile_and_report(cmd, report=False, verbose=False):
+def run_compile_and_report(cmd):
     """Runs a compile command, and optionally reports missed optimization lines with source context."""
 
     def log(msg):
-        if verbose:
+        if VERBOSE:
             print(msg)
         wf.write(msg + "\n")
         return
 
     try:
-        print(cmd)
+        # print(cmd)
         result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
         output = result.stdout + result.stderr
 
-        if report:
+        if REPORT:
             with open(f"${DATA_PATH}/compiler_report_{ID}.txt", "a") as wf:
                 # Match lines like: path/file.c:123:3: ...
                 pattern = re.compile(r"([^\s:]+\.c):(\d+):\d?")
@@ -250,9 +249,6 @@ def run_compile_and_report(cmd, report=False, verbose=False):
 # === Entry Point === #
 
 if __name__ == "__main__":
-
-    report, verbose = init()
-
     with open(f"{BUILD_PATH}/compile_{ID}.csv", "w") as f:
         for csv_row, compiler_cmd in yield_flag_csv_entries():
             f.write(csv_row + "\n")
@@ -260,4 +256,4 @@ if __name__ == "__main__":
                 compiler_cmd
             ):  # to avoid the first iteration which yeilds header and no command
                 # print(compiler_cmd)
-                run_compile_and_report(compiler_cmd, report, verbose)
+                run_compile_and_report(compiler_cmd)
