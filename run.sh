@@ -1,161 +1,209 @@
 #!/bin/bash
 
-set -euo pipefail
+set -e
 
-# Default CSV filename
-CSV_FILE="aux/run_data.csv"
-
-# Argument parsing
-BIN_FOLDER=""
-ENV_FILE=""
-PRINT_ENV=0
-RUNS=1
-declare -A RANGE_VARS
-declare -A SET_VARS
-OUTPUT_VARS=()
-
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --bin-folder)
-      BIN_FOLDER="$2"; shift 2 ;;
-    --env-file)
-      ENV_FILE="$2"; shift 2 ;;
-    --range)
-      VAR="$2"; MIN="$3"; MAX="$4"; STRIDE="$5"
-      RANGE_VARS["$VAR"]="$MIN:$MAX:$STRIDE"
-      shift 5 ;;
-    --set)
-      VAR="$2"; VALUES="$3"
-      SET_VARS["$VAR"]="$VALUES"
-      shift 3 ;;
-    --runs)
-      RUNS="$2"; shift 2 ;;
-    --output-vars)
-      shift
-      while [[ $# -gt 0 && "$1" != --* ]]; do
-        OUTPUT_VARS+=("$1")
-        shift
-      done ;;
-    --print-env)
-      PRINT_ENV=1; shift ;;
-    --csv)
-      CSV_FILE="$2"; shift 2 ;;
-    *)
-      echo "Unknown argument: $1" >&2; exit 1 ;;
-  esac
-done
-
-# ls -l "$BIN_FOLDER"
-
-# Check required args
-[[ -z "$BIN_FOLDER" || -z "$ENV_FILE" ]] && {
-  echo "Usage: $0 --bin-folder <folder> --env-file <file> ..." >&2
-  exit 1
+# -------------------------
+# Helper function: join with delimiter
+join_by() {
+    local IFS="$1"
+    shift
+    echo "$*"
 }
 
-# Load default environment variables
-source "$ENV_FILE"
+# -------------------------
+# Initialization
+exec_dir=""
+output_vars=()
+csv_file="build/run.csv"
+runs=1
+declare -A arg_sets
+declare -A env_sets
+declare -A arg_ranges
+declare -A env_ranges
+env_file=""
+print_env_after_set=false
+print_env_before_run=false
 
-# Create list of binaries
-BINARIES=()
-while IFS= read -r -d '' bin; do
-  [[ -x "$bin" ]] && BINARIES+=("$bin")
-done < <(find "$BIN_FOLDER" -maxdepth 1 -type f -executable -print0)
-
-
-# Generate env variable combinations
-COMBINATIONS=("")
-for VAR in "${!RANGE_VARS[@]}"; do
-  IFS=":" read -r MIN MAX STRIDE <<< "${RANGE_VARS[$VAR]}"
-  VALUES=()
-  for ((v=MIN; v<=MAX; v+=STRIDE)); do VALUES+=("$v"); done
-  NEW_COMBOS=()
-  for combo in "${COMBINATIONS[@]}"; do
-    for val in "${VALUES[@]}"; do
-      NEW_COMBOS+=("$combo $VAR=$val")
-    done
-  done
-  COMBINATIONS=("${NEW_COMBOS[@]}")
+# -------------------------
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --csv)
+            csv_file="$2"
+            shift 2
+            ;;
+        --out-vars)
+            IFS=',' read -r -a output_vars <<< "$2"
+            shift 2
+            ;;
+        --arg-set)
+            key="$2"
+            IFS=',' read -r -a values <<< "$3"
+            arg_sets["$key"]="${values[@]}"
+            shift 3
+            ;;
+        --arg-range)
+            key="$2"
+            min="$3"
+            max="$4"
+            stride="$5"
+            values=()
+            for ((v=min; v<=max; v+=stride)); do
+                values+=("$v")
+            done
+            arg_sets["$key"]="${values[@]}"
+            shift 5
+            ;;
+        --env-set)
+            key="$2"
+            IFS=',' read -r -a values <<< "$3"
+            env_sets["$key"]="${values[@]}"
+            shift 3
+            ;;
+        --env-range)
+            key="$2"
+            min="$3"
+            max="$4"
+            stride="$5"
+            values=()
+            for ((v=min; v<=max; v+=stride)); do
+                values+=("$v")
+            done
+            env_sets["$key"]="${values[@]}"
+            shift 5
+            ;;
+        --runs)
+            runs="$2"
+            shift 2
+            ;;
+        --env-file)
+            env_file="$2"
+            shift 2
+            ;;
+        --print-env-after-set)
+            print_env_after_set=true
+            shift
+            ;;
+        --print-env-before-run)
+            print_env_before_run=true
+            shift
+            ;;
+        *)
+            if [[ -z "$exec_dir" ]]; then
+                exec_dir="$1"
+                shift
+            elif [[ ${#output_vars[@]} -eq 0 ]]; then
+                IFS=',' read -r -a output_vars <<< "$1"
+                shift
+            else
+                echo "Unknown or malformed argument: $1"
+                exit 1
+            fi
+            ;;
+    esac
 done
 
-for VAR in "${!SET_VARS[@]}"; do
-  IFS=',' read -ra VALUES <<< "${SET_VARS[$VAR]}"
-  NEW_COMBOS=()
-  for combo in "${COMBINATIONS[@]}"; do
-    for val in "${VALUES[@]}"; do
-      NEW_COMBOS+=("$combo $VAR=$val")
-    done
-  done
-  COMBINATIONS=("${NEW_COMBOS[@]}")
-done
-
-# Print environment if requested
-if [[ "$PRINT_ENV" -eq 1 ]]; then
-  echo "---- Effective Environment ----"
-  printenv | sort
-  echo "-------------------------------"
+# -------------------------
+# Validate required fields
+if [[ -z "$exec_dir" || ${#output_vars[@]} -eq 0 ]]; then
+    echo "Usage: $0 <exec_dir> <output_vars> [options]"
+    exit 1
 fi
 
-# Write CSV header
-{
-  printf "id"
-  for VAR in "${!RANGE_VARS[@]}"; do printf ",%s" "$VAR"; done
-  for VAR in "${!SET_VARS[@]}"; do printf ",%s" "$VAR"; done
-  for OUT in "${OUTPUT_VARS[@]}"; do printf ",%s" "$OUT"; done
-  echo
-} > "$CSV_FILE"
+# -------------------------
+# Source env file if given
+if [[ -n "$env_file" ]]; then
+    source "$env_file"
+    $print_env_after_set && env
+fi
 
-# Run binaries
-for bin in "${BINARIES[@]}"; do
-  BIN_NAME=$(basename "$bin")
-  for combo in "${COMBINATIONS[@]}"; do
-    # Export env vars
-    eval "export $combo >> /dev/null"
-    for ((i=0; i<RUNS; i++)); do
-      # OUTPUT =$("$bin") || { echo "Error: binary '$BIN_NAME' failed on run $i"; exit 1; }
-      # env | grep "GOMP_CPU_AFFINITY"
-      OUTPUT=$("$bin") || { echo "Error: binary '$BIN_NAME' failed on run $i"; exit 1; }
+# -------------------------
+# Generate argument/env variable combinations (Cartesian product)
+arg_keys=("${!arg_sets[@]}")
+env_keys=("${!env_sets[@]}")
 
-      # Handle escaped \n in the output (if needed)
-      # Only do this if your binary outputs things like 'line1\nline2'
-      if [[ "$OUTPUT" == *\\n* ]]; then
-        OUTPUT=$(printf "%b" "$OUTPUT")
-      fi
-
-      # Split into lines
-      OUT_LINES=()
-      while IFS= read -r line; do
-        OUT_LINES+=("$line")
-      done <<< "$OUTPUT"
-
-      # Debug output
-      # echo "Split output lines:"
-      for line in "${OUT_LINES[@]}"; do
-        echo ">> $line"
-      done
-
-      # Check number of outputs
-      if [[ "${#OUT_LINES[@]}" -ne "${#OUTPUT_VARS[@]}" ]]; then
-        echo "Error: expected ${#OUTPUT_VARS[@]} output lines from '$BIN_NAME', got ${#OUT_LINES[@]}" >&2
-        exit 1
-      fi
-      
-      {
-        printf "%s" "$BIN_NAME"
-        for VAR in "${!RANGE_VARS[@]}"; do
-          val=$(echo "$combo" | grep -oP "$VAR=\K\S+" || echo "")
-          printf ",%s" "$val"
+arg_combinations=("")
+for key in "${arg_keys[@]}"; do
+    new_combinations=()
+    IFS=' ' read -r -a values <<< "${arg_sets[$key]}"
+    for combo in "${arg_combinations[@]}"; do
+        for val in "${values[@]}"; do
+            new_combinations+=("$combo $key=$val")
         done
-        for VAR in "${!SET_VARS[@]}"; do
-          val=$(echo "$combo" | grep -oP "$VAR=\K\S+" || echo "")
-          printf ",%s" "$val"
-        done
-        for val in "${OUT_LINES[@]}"; do
-          printf ",%s" "$val"
-        done
-        echo
-      } >> "$CSV_FILE"
     done
-  done
+    arg_combinations=("${new_combinations[@]}")
+done
+
+env_combinations=("")
+for key in "${env_keys[@]}"; do
+    new_combinations=()
+    IFS=' ' read -r -a values <<< "${env_sets[$key]}"
+    for combo in "${env_combinations[@]}"; do
+        for val in "${values[@]}"; do
+            new_combinations+=("$combo $key=$val")
+        done
+    done
+    env_combinations=("${new_combinations[@]}")
+done
+
+# -------------------------
+# Write CSV header
+header="binary"
+for k in "${arg_keys[@]}"; do header+=",$k"; done
+for k in "${env_keys[@]}"; do header+=",$k"; done
+for o in "${output_vars[@]}"; do header+=",$o"; done
+echo "$header" > "$csv_file"
+
+# -------------------------
+# Run each combination
+for bin in "$exec_dir"/*; do
+    [[ -x "$bin" && -f "$bin" ]] || continue
+    bin_name=$(basename "$bin")
+
+    for arg_combo in "${arg_combinations[@]}"; do
+        declare -A arg_vals
+        for pair in $arg_combo; do
+            k="${pair%%=*}"
+            v="${pair#*=}"
+            arg_vals["$k"]="$v"
+        done
+        arg_args=()
+        for k in "${arg_keys[@]}"; do
+            arg_args+=("${arg_vals[$k]}")
+        done
+
+        for env_combo in "${env_combinations[@]}"; do
+            declare -A env_vals
+            for pair in $env_combo; do
+                k="${pair%%=*}"
+                v="${pair#*=}"
+                env_vals["$k"]="$v"
+            done
+
+            for ((i=0; i<runs; i++)); do
+                # Set env vars temporarily
+                env_cmd=""
+                for k in "${env_keys[@]}"; do
+                    env_cmd+=" $k=${env_vals[$k]}"
+                done
+
+                $print_env_before_run && echo "ENV: $env_cmd"
+
+                # Run and capture output
+                result=$(eval $env_cmd "$bin" "${arg_args[@]}")
+
+                # Read outputs line by line
+                # IFS=$'\n' read -d '' -r -a lines <<< "$result"
+                IFS=$'\n' read -r -a lines <<< "$result"
+
+                # Construct CSV row
+                row="$bin_name"
+                for k in "${arg_keys[@]}"; do row+=","${arg_vals[$k]}; done
+                for k in "${env_keys[@]}"; do row+=","${env_vals[$k]}; done
+                for l in "${lines[@]}"; do row+=",$l"; done
+
+                echo "$row" >> "$csv_file"
+            done
+        done
+    done
 done
