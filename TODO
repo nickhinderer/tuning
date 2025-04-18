@@ -1,0 +1,3 @@
+- be able to combine runs (e.g. no point in doing non-openmp compiled binary with 10 variations of number of threads)
+more thourough readme including all options and the values they take
+comments inside the source code

@@ -1,0 +1,79 @@
+================  compile.py  ================
+
+Given a specified source file, a set of option groups, and a file specifying the environment variables to be set at compile time (as specified by the assignment), a set of executable files are created for every combination between the set of groups of options, as well as a csv file which for each executable specifies the options compiled with any environment variables explicitly specified and the name of the source file (which for the later two categories have the same values for the entire set created during one execution, but these sets can later be combined in evaluate.py) 
+
+Input:
+- compiler command
+- set of option groups
+- (optional) environment variable file
+Output:
+- executable files located in bin/
+- compiler_data_sourcefile.csv
+- (optional) compiler_report_sourcefile.txt
+
+Notes:
+- For now options, flags, and other information is specified via global values
+- To compile a version without the members of an option group, the empty string must be added to the group
+- If a set of environment variables is given, it will be printed prior to compiling
+
+Use Cases:
+- run with two different source files
+- run one source file with two different sets of combinations (be careful as in this case the csv must be renamed or will be overwritten)
+- 
+
+-- environment variable file --
+must contain only variable name followed by an equals sign and the value optionally wrapped in double quotes, each entry separated by a newline, e.g.
+VAR="VAL"
+FOO=BAR
+NICK="7"
+
+================  machine_profiler.py  ================
+
+For now, the program simply prints basic CPU information made available by lscpu to the console. Optionally it can be stored to a text file (aux/cpu_profile.txt) if specified via function argument. Works only with Linux machines which have lscpu available (all of them to my knowlege)
+
+================  run.sh  ================
+
+The purpose is simply to run every executable in the bin directory using every combination of environment variables given, each program running a specified number of times, and generate a csv file (run_data.csv) documenting the observed output and noting the binary name and variable (during the execution of the script) environement variable values.
+
+The reason for writing a shell script rather than another Python program is my intuition that a Python program may have perceptible impact on the execution of a program, and my other intuition being that a shell script may be more lightweight, but as disclaimer, I have not verified either of these hypothesis.
+
+The options for using this script are as follows:
+
+Required:
+--bin-folder (specified the directory containing the executable files, each file in this directory will be run)
+--output-vars (the name(s) of the column(s) in the resulting csv file which the output will be mapped to)
+Optional:
+--set VAR VAL1,VAL2,...  (defines a set of values for the environment variable VAR)
+--range VAR start end stride (defines the values to be used for the environment variable VAR starting at start (inclusive) incremented by stride until greater than or equal to end)
+--runs n (runs each binary n times for each combination of environment variables)
+--env-file (defines the variables to be used during the execution of each program, if the same environment variable is defined using the --set or --range options, then the given value will not be considered)
+--
+
+The output after running this script is a csv file containing for each execution of a program and combination of environment variables (if specified), the name of the binary, the name of only the environment variables which change within the duration of the script (i.e. those specified by set and range options), and the output of the program.
+
+Notes:
+- The output of a program must be exactly some string or number on each line, and if two or more variables are being output, the number of variables declared when running the script must match exactly the number of lines being produced
+
+Example Usage:
+./run.sh --bin-folder bin --env-file env.txt --output-vars exec_time --runs 2 --range OMP_NUM_THREADS 1 11 2
+./run.sh --bin-folder bin --env-file env.txt --output-vars l1_misses exec_time --runs 10 --range OMP_NUM_THREADS 1 11 2 --set OMP_SCHEDULE static,dynamic
+
+env-file:
+- must be of the format "export VAR=VALUE", one entry per line
+
+================  evaluate.py  ================
+
+After having run the preceding scripts, this program takes the resulting csv files and applies basic aggregations of the data displays the results in various forms. In the beginning, if more than one compiler csv file is given, they are merged with zeros being inserted to any columns not shared by both files (e.g. if file1 has a column for O3 flag but file2 does not, entries from file2 will have a zero value placed into this column in the combined table). After this optional part, the two tables are joined by associating entries using the 'id' column, which is the name of the binary file (entries from either csv which do not have an associated entry in the other table, which in theory is impossible, are dropped). From here points can be arbitrarily grouped compared and are manipulated using the pandas library
+
+Inputs:
+- One or more csv files in the format specified by compile.py
+- One csv file in the format specified by run.sh
+Outputs:
+- Tables and various metrics dispalyed via console
+
+Notes:
+
+==============================================
+Notes:
+- The compiler reporting is not working fully, the goal is to have for each run of the compiler the report generated by the compiler displayed but in a more readable format. I am attempting to take the message associated with each optimization and display the line (and surrounding few lines) being referenced and repeat the optimization made (or missed) to essentially skip the intermediate steps of reading the report generated and identifying the line in the source code. Right now some output is not being captured, so this is a work in progress
+- 
