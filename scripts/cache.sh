@@ -1,6 +1,6 @@
 #!/bin/bash
-mkdir -p cache
+mkdir -p build/cache
 filename="cached_$(date +%d%m%Y_%H%M%S)"
-tar -cf $filename aux bin
-mv $filename cache
-rm aux/* bin/*
+tar -cf $filename bin/* build/*.csv
+mv $filename build/cache
+rm bin/* build/*.csv
