@@ -2,6 +2,7 @@ import pandas as pd
 from tabulate import tabulate
 import argparse
 from modules.files import create_file_with_timestamp
+import matplotlib
 
 # === Global Configuration === #
 

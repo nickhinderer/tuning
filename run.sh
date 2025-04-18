@@ -2,6 +2,10 @@
 
 set -e
 
+set -a
+source .env
+set +a
+
 # -------------------------
 # Helper function: join with delimiter
 join_by() {
