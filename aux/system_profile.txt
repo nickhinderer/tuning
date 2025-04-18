@@ -1,0 +1,11 @@
+Physical Cores: 8
+Logical Cores: 16
+Model: Intel(R) Xeon(R) E-2278G CPU @ 3.40GHz
+Max Freq: 5.00 GHz
+Min Freq: 0.80 GHz
+L1d: 32 KiB
+L1i: 32 KiB
+L2: 256 KiB
+L3: 16,384 KiB (16 MiB)
+
+gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-26)
