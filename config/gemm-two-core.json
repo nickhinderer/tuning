@@ -1,10 +1,11 @@
 {
-"gemm.openmp": {
+    "gemm": {
+        "source" : "gemm.two.core",
         "compiler" : "gcc",
         "prelude" : "-fopt-info-vec-missed -DNI=N -DNJ=N -DNK=N -I ../polybench-c-4.2.1-beta/utilities -I ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm ../polybench-c-4.2.1-beta/utilities/polybench.c ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.openmp.c -DPOLYBENCH_TIME",
         "flags" : {
             "variable" : {
-                "DN=" : [16, 64, 512, 1024, 4000]
+                "DN=" : [5000]
             },
             "group" : [["O3"], ["fopenmp"]]
         }

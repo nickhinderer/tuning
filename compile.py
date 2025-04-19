@@ -18,8 +18,10 @@ load_dotenv()
 BIN_PATH = os.getenv("BIN_PATH")
 BUILD_PATH = os.getenv("BUILD_PATH")
 DATA_PATH = os.getenv("DATA_PATH")
-ENV_PATH = os.getenv("ENV_PATH")
+CONFIG_PATH = os.getenv("CONFIG_PATH")
 
+ID = "gemm"
+SOURCE = "gemm"
 COMPILER = "gcc"
 PRELUDE = "-fopt-info-vec-missed -DNI=N -DNJ=N -DNK=N -I ../polybench-c-4.2.1-beta/utilities -I ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm ../polybench-c-4.2.1-beta/utilities/polybench.c ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.c -DPOLYBENCH_TIME "
 VARIABLE_FLAGS = {"DN=": [16, 256, 512, 1024]}
@@ -30,7 +32,6 @@ FLAG_GROUPS = [
     ],
     ["fopenmp"],
 ]
-ID = "gemm"
 
 PRINT_IN_COLOR = False
 COLOR = (
@@ -51,7 +52,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--import-json",
     nargs="?",
-    const="env/compile_config.json",  # used if --import-json is given without value
+    const="config/compile_config.json",  # used if --import-json is given without value
     default=None,  # None means not used at all
 )
 args = parser.parse_args()
@@ -60,6 +61,7 @@ if args.import_json:
     with open(f"{args.import_json}", "r") as f:
         config = json.load(f)
         ID, data = next(iter(config.items()))
+        SOURCE = data.get("source")
         COMPILER = data.get("compiler")
         PRELUDE = data.get("prelude")
         flags = data.get("flags")
@@ -141,7 +143,7 @@ def build_compiler_flag_string(flags, variables):
 def build_csv_row(active_flags, all_flags, variable_values, temp_filename):
     """Convert flag presence and variable values into a CSV row with temp filename."""
     flag_bits = [1 if flag in active_flags else 0 for flag in all_flags]
-    return [temp_filename, ID] + flag_bits + list(variable_values)
+    return [temp_filename, SOURCE] + flag_bits + list(variable_values)
 
 
 def yield_flag_csv_entries():
