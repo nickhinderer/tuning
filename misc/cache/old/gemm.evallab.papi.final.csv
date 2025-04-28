@@ -1,0 +1,11 @@
+id,stall_cyc,vec_ops,cyc,source
+gemm.evallab.papiqq6kdsyx5baqpjz5,60485631,50364416,110838583,gemm.evallab.c
+gemm.evallab.papiqq6kdsyx5baqpjz5,60768267,50364416,111799468,gemm.evallab.c
+gemm.evallab.papiqq6kdsyx5baqpjz5,60963479,50364416,111624273,gemm.evallab.c
+gemm.evallab.papiqq6kdsyx5baqpjz5,71043784,50364416,121546860,gemm.evallab.c
+gemm.evallab.papiqq6kdsyx5baqpjz5,70339286,50364416,121463672,gemm.evallab.c
+gemm.evallab.papiqq6kdsyx5baqpjz5,70809498,50364416,121925077,gemm.evallab.c
+gemm.evallab.papiqq6kdsyx5baqpjz5,59997186,50364416,110442915,gemm.evallab.c
+gemm.evallab.papiqq6kdsyx5baqpjz5,71275291,50364416,123737853,gemm.evallab.c
+gemm.evallab.papiqq6kdsyx5baqpjz5,72523067,50364416,123873558,gemm.evallab.c
+gemm.evallab.papiqq6kdsyx5baqpjz5,60042170,50364416,110059682,gemm.evallab.c

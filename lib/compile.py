@@ -118,9 +118,9 @@ def yield_flag_csv_entries():
 
 def run_compile_and_report(cmd):
     try:
-        print(cmd)
+        # print(cmd)
         result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
-        print(result.stderr)
+        # print(result.stderr)
         return result.returncode == 0
 
     except Exception as e:
@@ -137,5 +137,4 @@ if __name__ == "__main__":
             if (
                 compiler_cmd
             ):  # to avoid the first iteration which yeilds header and no command
-                print(compiler_cmd)
                 run_compile_and_report(compiler_cmd)

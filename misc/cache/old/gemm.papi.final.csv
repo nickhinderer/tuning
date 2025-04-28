@@ -1,0 +1,11 @@
+id,stall_cyc,vec_ops,cyc,source
+gemm.papioshcbphf57ywfhda,2743307,16875520,20503798,gemm.c
+gemm.papioshcbphf57ywfhda,3350939,16875520,21010333,gemm.c
+gemm.papioshcbphf57ywfhda,3460055,16875520,21016181,gemm.c
+gemm.papioshcbphf57ywfhda,3340547,16875520,21088652,gemm.c
+gemm.papioshcbphf57ywfhda,3227488,16875520,20744196,gemm.c
+gemm.papioshcbphf57ywfhda,3040894,16875520,20417006,gemm.c
+gemm.papioshcbphf57ywfhda,2784180,16875520,20370294,gemm.c
+gemm.papioshcbphf57ywfhda,2700322,16875520,20403932,gemm.c
+gemm.papioshcbphf57ywfhda,3274203,16875520,20388250,gemm.c
+gemm.papioshcbphf57ywfhda,2699025,16875520,20493253,gemm.c

@@ -1,20 +1,13 @@
 import argparse
-import os
 from pathlib import Path
 
 import pandas as pd
-from dotenv import load_dotenv
-
-# === Load Environment === #
-load_dotenv()
-DATA_PATH = os.getenv("DATA_PATH")
-DATA_FILE = os.getenv("DATA_FILE")
-OUTPUT_FILE = os.path.join(DATA_PATH, DATA_FILE)
 
 # === CLI === #
 parser = argparse.ArgumentParser()
 parser.add_argument("--compile-info", nargs="+", required=True)
 parser.add_argument("--run-info", nargs="+", required=True)
+parser.add_argument("--csv", nargs=1, required=True)
 args = parser.parse_args()
 
 # === Constants === #
@@ -24,6 +17,12 @@ COLUMN_RENAME = {
     "OMP_NUM_THREADS": "threads",
     "fopenmp": "OpenMP",
     "time": "time",
+    # "cyc": "cycles",
+    # "stall_cyc": "stall cycles",
+    # "cyc": "cycles",
+    # "cyc": "cycles",
+    # "cyc": "cycles",
+    # "cyc": "cycles",
 }
 
 
@@ -74,4 +73,4 @@ if __name__ == "__main__":
     merged_df = merge_on_id(compile_df, run_df)
     renamed_df = merged_df.rename(columns=COLUMN_RENAME)
 
-    renamed_df.to_csv(OUTPUT_FILE, index=False)
+    renamed_df.to_csv("data/csv/" + args.csv[0], index=False)

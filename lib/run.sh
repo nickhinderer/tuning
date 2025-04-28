@@ -2,8 +2,8 @@
 
 set -e
 
-set -a
-source .env
+# set -a
+# source .env
 # set +a
 # env
 # -------------------------
@@ -18,7 +18,7 @@ join_by() {
 # Initialization
 # exec_dir=""
 output_vars=()
-csv_file="${BUILD_PATH}/run.csv"
+csv_file="run.csv"
 runs=1
 declare -A arg_sets
 declare -A env_sets
@@ -33,7 +33,7 @@ print_env_before_run=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --csv)
-            csv_file="${BUILD_PATH}/$2"
+            csv_file="data/csv/run/$2"
             shift 2
             ;;
         --out-vars)
@@ -116,11 +116,13 @@ fi
 
 # -------------------------
 # Source env file if given
+set -a
 if [[ -n "$env_file" ]]; then
     source "$env_file"
     $print_env_after_set && env
 fi
-
+# echo "env is"
+# env
 # -------------------------
 # Generate argument/env variable combinations (Cartesian product)
 arg_keys=("${!arg_sets[@]}")
@@ -160,7 +162,7 @@ echo "$header" > "$csv_file"
 
 # -------------------------
 # Run each combination
-for bin in "$BIN_PATH"/*; do
+for bin in data/bin/*; do
     [[ -x "$bin" && -f "$bin" ]] || continue
     bin_name=$(basename "$bin")
 
@@ -198,7 +200,8 @@ for bin in "$BIN_PATH"/*; do
 
                 # Read outputs line by line
                 # IFS=$'\n' read -d '' -r -a lines <<< "$result"
-                IFS=$'\n' read -r -a lines <<< "$result"
+                IFS=$' ' read -r -a lines <<< "$result"
+                # IFS=$'\n' read -r -a lines <<< "$result"
 
                 # Construct CSV row
                 row="$bin_name"

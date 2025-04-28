@@ -1,0 +1,13 @@
+{
+"gemm.openmp.papi": {
+        "source" : "gemm.openmp.c",
+        "compiler" : "gcc",
+        "prelude" : " -fopenmp -O3 -DNI=N -DNJ=N -DNK=N -I ../polybench-c-4.2.1-beta/utilities -I ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm ../polybench-c-4.2.1-beta/utilities/polybench.c ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.openmp.c -DPOLYBENCH_PAPI -lpapi",
+        "flags" : {
+            "variable" : {
+                "DN=" : [128,256,512]
+            },
+            "group" : []
+        }
+    }
+}

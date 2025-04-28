@@ -2,7 +2,7 @@
     "gemm.papi": {
         "source" : "gemm.c",
         "compiler" : "gcc",
-        "prelude" : " -DNI=N -DNJ=N -DNK=N -DN=256 -O3 -I ../polybench-c-4.2.1-beta/utilities -I ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm ../polybench-c-4.2.1-beta/utilities/polybench.c ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.c -DPOLYBENCH_TIME",
+        "prelude" : "-lpapi -DPOLYBENCH_PAPI -DNI=N -DNJ=N -DNK=N -DN=256 -O3 -I ../polybench-c-4.2.1-beta/utilities -I ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm ../polybench-c-4.2.1-beta/utilities/polybench.c ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.c ",
         "flags" : {
             "variable" : {
 
