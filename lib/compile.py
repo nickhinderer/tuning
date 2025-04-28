@@ -1,24 +1,14 @@
-import os
 import subprocess
 import itertools
 
-# import csv
 import secrets
 import string
 import argparse
-import re
 import json
-from pathlib import Path
-from dotenv import load_dotenv
 
 
 # === Global Configuration === #
 
-load_dotenv()
-BIN_PATH = os.getenv("BIN_PATH")
-BUILD_PATH = os.getenv("BUILD_PATH")
-DATA_PATH = os.getenv("DATA_PATH")
-CONFIG_PATH = os.getenv("CONFIG_PATH")
 
 ID = "gemm"
 SOURCE = "gemm"
@@ -33,26 +23,10 @@ FLAG_GROUPS = [
     ["fopenmp"],
 ]
 
-PRINT_IN_COLOR = False
-COLOR = (
-    {
-        "red": "\033[031m",
-        "gre": "\033[032m",
-        "ylo": "\033[033m",
-        "blu": "\033[034m",
-        "pur": "\033[035m",
-        "clr": "\033[0m",
-    }
-    if PRINT_IN_COLOR
-    else {"red": "", "gre": "", "ylo": "", "blu": "", "pur": "", "clr": ""}
-)
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--import-json",
     nargs="?",
-    const="config/compile_config.json",  # used if --import-json is given without value
     default=None,  # None means not used at all
 )
 args = parser.parse_args()
@@ -72,20 +46,6 @@ if args.import_json:
             VARIABLE_FLAGS = dict()
             FLAG_GROUPS = list()
 
-# os.makedirs("bin", exist_ok=True)
-# os.makedirs("aux", exist_ok=True)
-
-# parser = argparse.ArgumentParser()
-# parser.add_argument(
-#     "--env-file", type=str, help="Path to environment variable file"
-# )
-# parser.add_argument("--report", action="store_true", help="")
-# args = parser.parse_args()
-# env_vars = {}
-# if args.env_file:
-#     env_vars = update_environment_from_file(args.env_file)
-REPORT, VERBOSE = False, False
-
 # === Helper Functions === #
 
 
@@ -94,23 +54,6 @@ def generate_filename(prefix=ID, length=16):
     chars = string.ascii_lowercase + string.digits
     suffix = "".join(secrets.choice(chars) for _ in range(length))
     return prefix + suffix
-
-
-def update_environment_from_file(filename):
-    """Read and parse environment variables from a file into a dict."""
-    env_vars = {}
-    with open(filename, "r") as file:
-        for line in file:
-            if "=" in line:
-                key, val = line.strip().split("=", 1)
-                val = val.strip('"')  # Remove quotes if present
-                env_vars[key] = val
-                os.environ[key] = val  # Update the actual environment
-    with open(f"aux/compile_env_{ID}.txt", "w") as f:
-        for variable, value in os.environ.items():
-            f.write(f"{variable}={value}\n")
-            print(f"{variable}={value}")
-    return env_vars
 
 
 def generate_flag_combinations(flag_groups):
@@ -147,12 +90,7 @@ def build_csv_row(active_flags, all_flags, variable_values, temp_filename):
 
 
 def yield_flag_csv_entries():
-    """
-    Yield CSV row strings and corresponding compiler flag strings.
 
-    Returns:
-        Yields tuples of (csv_row_string, compiler_flag_string)
-    """
     all_flags = collect_unique_flags(FLAG_GROUPS)
     flag_combos = generate_flag_combinations(FLAG_GROUPS)
     var_combos = generate_variable_combinations(VARIABLE_FLAGS)
@@ -168,7 +106,7 @@ def yield_flag_csv_entries():
 
             # Compiler flags including output redirection
             compiler_cmd = " ".join((COMPILER, PRELUDE))
-            compiler_cmd += f" -o {BIN_PATH}/{temp_filename} "
+            compiler_cmd += f" -o data/bin/{temp_filename} "
             compiler_cmd += build_compiler_flag_string(flag_combo, variables)
 
             # Row to write to CSV
@@ -179,68 +117,10 @@ def yield_flag_csv_entries():
 
 
 def run_compile_and_report(cmd):
-    """Runs a compile command, and optionally reports missed optimization lines with source context."""
-
-    def log(msg):
-        if VERBOSE:
-            print(msg)
-        wf.write(msg + "\n")
-        return
-
     try:
-        # print(cmd)
+        print(cmd)
         result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
-        output = result.stdout + result.stderr
-
-        if REPORT:
-            with open(f"${DATA_PATH}/compiler_report_{ID}.txt", "a") as wf:
-                # Match lines like: path/file.c:123:3: ...
-                pattern = re.compile(r"([^\s:]+\.c):(\d+):\d?")
-                # pattern = re.compile(r'([^\s:]+\.c):(\d+)(?::\d+)?')
-                # pattern = re.compile(r"\b([^\s:]+\.c):(\d+)(?::\d+)?")
-                # matches = pattern.findall(output)
-                matches = []
-                for line in output.splitlines():
-                    match = pattern.search(line)
-                    if match:
-                        filename, lineno = match.groups()
-                        matches.append((filename, int(lineno), line.strip()))
-
-                seen = set()
-                for filename, lineno, full_msg in matches:
-                    key = (filename, lineno)
-                    if key in seen:
-                        continue
-                    seen.add(key)
-
-                    lineno = int(lineno)
-                    log(f"\n[!] {filename}:{lineno}\n")
-                    log(f"   > {full_msg}")
-
-                    # Try to resolve full path
-                    path = Path(filename)
-                    if not path.exists():
-                        print(f"    File not found: {filename}")
-                        continue
-
-                    try:
-                        with open(path, "r") as rf:
-                            lines = rf.readlines()
-
-                        start = max(0, lineno - 7)
-                        end = min(len(lines), lineno + 6)
-
-                        for i in range(start, end):
-                            prefix = (
-                                f">> {COLOR['blu']}"
-                                if i + 1 == lineno
-                                else f"   {COLOR['ylo']}"
-                            )
-                            log(f"{prefix}{i+1:4}: {lines[i].rstrip()}{COLOR['clr']}")
-
-                    except Exception as e:
-                        print(f"    Error reading {filename}: {e}")
-
+        print(result.stderr)
         return result.returncode == 0
 
     except Exception as e:
@@ -251,11 +131,11 @@ def run_compile_and_report(cmd):
 # === Entry Point === #
 
 if __name__ == "__main__":
-    with open(f"{BUILD_PATH}/compile_{ID}.csv", "w") as f:
+    with open(f"data/csv/compile/compile_{ID}.csv", "w") as f:
         for csv_row, compiler_cmd in yield_flag_csv_entries():
             f.write(csv_row + "\n")
             if (
                 compiler_cmd
             ):  # to avoid the first iteration which yeilds header and no command
-                # print(compiler_cmd)
+                print(compiler_cmd)
                 run_compile_and_report(compiler_cmd)

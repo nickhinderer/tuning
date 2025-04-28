@@ -1,5 +1,5 @@
 .PHONY: clean
 
 clean:
-	rm -f build/*.csv
-	rm -f bin/*
+	rm -f data/csv/*/*.csv
+	rm -f data/bin/*

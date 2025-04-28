@@ -1,0 +1,13 @@
+{
+    "gemm.evallab.papi": {
+        "source" : "gemm.evallab.c",
+        "compiler" : "gcc",
+        "prelude" : " -DNI=N -DNJ=N -DNK=N -DN=256 -O3 -I ../polybench-c-4.2.1-beta/utilities -I ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm ../polybench-c-4.2.1-beta/utilities/polybench.c ../polybench-c-4.2.1-beta/linear-algebra/blas/gemm/gemm.evallab.c -DPOLYBENCH_TIME",
+        "flags" : {
+            "variable" : {
+
+            },
+            "group" : []
+        }
+    }
+}
