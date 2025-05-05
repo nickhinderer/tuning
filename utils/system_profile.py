@@ -1,11 +1,8 @@
 import platform
 import subprocess
-from dotenv import load_dotenv
 import os
 import pathlib
 
-load_dotenv()
-output_file = pathlib.Path(os.getenv("DATA_PATH")) / "system_profile.txt"
 
 def print_proc_info(save=False):
     """
@@ -68,11 +65,7 @@ def print_proc_info(save=False):
     if l3:
         cpu_profile += f"L3: {l3:,} KiB ({int(l3/1024)} MiB)\n"
     print(cpu_profile)
-    if save:
-        
-        with open(output_file, "w") as f:
-            f.write(cpu_profile)
-            f.close()
+
     return
 
 
@@ -80,10 +73,7 @@ def print_gcc_info(save=False):
     gcc = subprocess.run("gcc --version", shell=True, capture_output=True)
     gcc_version = gcc.stdout.decode("utf-8").splitlines()[0]
     print(gcc_version)
-    if save:
-        with open(output_file, "a") as f:
-            f.write("\n" + gcc_version)
-            f.close()
+
     return
 
 

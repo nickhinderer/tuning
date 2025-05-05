@@ -1,76 +1,12 @@
 #!/bin/bash
-DEP_VARS="instr,cyc,stall_cyc,l1d_miss,l2d_acc,l2d_miss,l3_acc,dtlb_m,itlb_m,vec_sp,vec_dp,sp_op,dp_op,fp_scl_sin,fp_scl_dbl,lst_instr" #l1_dca" #,vec_instr"
-RUNS=10
-COUNTERS="misc/polybench/counters.list"
-ID=gemm.openmp.papi
+set -a
+source misc/polybench/.env
 
 ./utils/replace_restore.sh replace $COUNTERS ../polybench-c-4.2.1-beta/utilities/papi_counters.list
+
 make clean > /dev/null
 python lib/compile.py --import-json config/compile/$ID.json
-./lib/run.sh --out-vars $DEP_VARS --runs $RUNS --csv $ID.csv --env-range OMP_NUM_THREADS 1 8 1 --env-file config/runtime/omp_env.txt
+./lib/run.sh --out-vars $DEP_VARS --runs $RUNS --csv $ID.csv --env-range OMP_NUM_THREADS 1 8 1 --env-file $OMP_ENV
 python lib/combine.py --run-info data/csv/run/$ID.csv --compile-info data/csv/compile/compile_$ID.csv  --csv $ID.final.csv
 ./utils/replace_restore.sh restore ../polybench-c-4.2.1-beta/utilities/papi_counters.list
 python3 utils/csv_formatting/format_table.py data/csv/$ID.final.csv
-
-
-# python3 utils/csv_formatting/agg.py data/csv/$ID.final.csv stall_cycles vector_ops cycles
-# python3 utils/csv_formatting/sort.py  data/csv/$ID.final_agg.csv --drop_cols id source --sort_cols n 
-# python3 utils/csv_formatting/sort.py  data/csv/$ID.final_agg.csv --drop_cols id source --sort_cols n threads
-# make clean > /dev/null
-# python lib/compile.py --import-json config/compile/gemm.papi.json
-# ./lib/run.sh --out-vars  --runs $RUNS --csv gemm.papi.csv
-# python lib/combine.py --run-info data/csv/run/gemm.papi.csv --compile-info data/csv/compile/compile_gemm.papi.csv  --csv gemm.papi.final.csv
-
-# make clean > /dev/null
-# python lib/compile.py --import-json config/compile/gemm.evallab.papi.json
-# ./lib/run.sh --out-vars $DEP_VARS --runs $RUNS --csv gemm.evallab.papi.csv
-# python lib/combine.py --run-info data/csv/run/gemm.evallab.papi.csv --compile-info data/csv/compile/compile_gemm.evallab.papi.csv --csv gemm.evallab.papi.final.csv
-
-# make clean > /dev/null
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # Usage function to display how to use the script
-# usage() {
-#     echo "Usage: $0 [-a] [-b <arg>] [-c] [--flag <arg>]"
-#     exit 1
-# }
-
-# # Process flags and arguments
-# while getopts ":ab:c" opt; do
-#   case ${opt} in
-#     a)
-#       echo "Option -a was triggered."
-#       ;;
-#     b)
-#       echo "Option -b with argument '$OPTARG' was triggered."
-#       ;;
-#     c)
-#       echo "Option -c was triggered."
-#       ;;
-#     \?)
-#       usage
-#       ;;
-#   esac
-# done
-
-# # After getopts, handle the remaining positional arguments
-# shift $((OPTIND -1))
-
-# # Optionally, you can access the leftover arguments (if any)
-# echo "Remaining arguments: $@"
-
